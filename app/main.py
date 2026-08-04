@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import dictionary_client, scheduler, vocab_store
+from app import dictionary_client, scheduler, stats as stats_mod, vocab_store
 from app.db import connect, init_db
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -83,6 +83,19 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
     def remove_entry(request: Request, entry_id: int) -> HTMLResponse:
         vocab_store.delete_entry(app.state.conn, entry_id)
         return HTMLResponse('<p class="muted">Removed.</p>')
+
+    @app.get("/stats", response_class=HTMLResponse)
+    def stats_page(request: Request) -> HTMLResponse:
+        conn = app.state.conn
+        entries = vocab_store.list_entries(conn)
+        reviews = vocab_store.all_reviews(conn)
+        result = stats_mod.compute(entries, reviews, today=date.today())
+        max_count = max((d.count for d in result.reviews_per_day), default=0)
+        return templates.TemplateResponse(
+            request,
+            "stats.html",
+            {"stats": result, "max_count": max_count},
+        )
 
     @app.get("/browse", response_class=HTMLResponse)
     def browse_page(

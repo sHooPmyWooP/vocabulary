@@ -222,3 +222,24 @@ body {
   padding: 0.5rem 0.75rem; font-size: 1rem;
   border: 1px solid var(--border); border-radius: 8px;
 }
+
+/* Stats screen */
+.stats h2 { margin-top: 2rem; }
+.maturity { display: flex; gap: 1rem; flex-wrap: wrap; }
+.maturity-item {
+  flex: 1; min-width: 90px; text-align: center;
+  padding: 1rem; border: 1px solid var(--border); border-radius: 12px;
+}
+.maturity-count { display: block; font-size: 1.8rem; font-weight: 700; }
+.maturity-label { color: var(--muted); font-size: 0.9rem; }
+.bar-chart {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 160px; padding: 0.5rem 0;
+  border-bottom: 2px solid var(--border);
+}
+.bar-col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.bar {
+  width: 100%; min-height: 2px; border-radius: 3px 3px 0 0;
+  background: var(--accent, #3b82f6);
+}
+.bar[data-count="0"] { background: var(--border); min-height: 2px; }

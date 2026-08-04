@@ -90,6 +90,13 @@ def add_entry(conn: sqlite3.Connection, word: str, payload: Any) -> Entry:
     return get_by_id(conn, cur.lastrowid)  # type: ignore[return-value]
 
 
+def all_reviews(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Every review-log row, for the stats aggregation module."""
+    return conn.execute(
+        "SELECT entry_id, graded_at, grade FROM review_log"
+    ).fetchall()
+
+
 def delete_entry(conn: sqlite3.Connection, entry_id: int) -> None:
     """Delete an entry (and its review-log rows via cascade)."""
     conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))

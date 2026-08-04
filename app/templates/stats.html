@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Vocabulary - Stats{% endblock %}
+{% block content %}
+<section class="stats">
+  <h1>Stats</h1>
+
+  <div class="stat-cards">
+    <div class="stat-card">
+      <span class="stat-number" data-testid="total-words">{{ stats.total_words }}</span>
+      <span class="stat-label">Total words</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number" data-testid="due-today">{{ stats.due_today }}</span>
+      <span class="stat-label">Due today</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number" data-testid="accuracy">{{ stats.accuracy }}%</span>
+      <span class="stat-label">Accuracy (Good + Easy)</span>
+    </div>
+  </div>
+
+  <h2>Maturity</h2>
+  <div class="maturity" data-testid="maturity">
+    <div class="maturity-item">
+      <span class="maturity-count" data-testid="maturity-new">{{ stats.maturity.new }}</span>
+      <span class="maturity-label">New</span>
+    </div>
+    <div class="maturity-item">
+      <span class="maturity-count" data-testid="maturity-learning">{{ stats.maturity.learning }}</span>
+      <span class="maturity-label">Learning</span>
+    </div>
+    <div class="maturity-item">
+      <span class="maturity-count" data-testid="maturity-mature">{{ stats.maturity.mature }}</span>
+      <span class="maturity-label">Mature</span>
+    </div>
+  </div>
+
+  <h2>Reviews per day (last 30 days)</h2>
+  <div class="bar-chart" data-testid="reviews-chart">
+    {% for day in stats.reviews_per_day %}
+    <div class="bar-col" title="{{ day.date }}: {{ day.count }}">
+      <div class="bar"
+           style="height: {{ (day.count / max_count * 100) if max_count else 0 }}%"
+           data-count="{{ day.count }}"></div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
