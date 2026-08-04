@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Vocabulary - Lookup{% endblock %}
+{% block content %}
+<section class="lookup">
+  <h1>Look up a word</h1>
+  <form class="lookup-form"
+        hx-post="/lookup"
+        hx-target="#lookup-result"
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset(); this.word.focus()">
+    <input type="text"
+           name="word"
+           placeholder="Type a word and press enter"
+           autocomplete="off"
+           autofocus
+           required>
+    <button type="submit">Look up</button>
+  </form>
+  <div id="lookup-result" class="lookup-result"></div>
+</section>
+{% endblock %}

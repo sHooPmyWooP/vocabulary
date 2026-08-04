@@ -1,0 +1,37 @@
+{% if not_found %}
+<div class="result-card not-found">
+  <p><strong>"{{ word }}"</strong> was not found in the dictionary. Nothing was added.</p>
+</div>
+{% else %}
+<div class="result-card">
+  <div class="result-head">
+    <h2>{{ result.word }}</h2>
+    {% if already_known %}
+    <span class="badge" data-testid="lookup-count">Already in your list &middot; looked up {{ entry.lookup_count }}&times;</span>
+    {% else %}
+    <span class="badge added">Added to your list</span>
+    {% endif %}
+    <button class="link-btn"
+            hx-delete="/entry/{{ entry.id }}"
+            hx-target="#lookup-result"
+            hx-swap="innerHTML">Undo / remove</button>
+  </div>
+
+  {% for sense in result.senses %}
+  <div class="sense">
+    <span class="pos">{{ sense.part_of_speech }}</span>
+    <ol>
+      {% for d in sense.definitions %}
+      <li>
+        {{ d.definition }}
+        {% if d.example %}<span class="example">&ldquo;{{ d.example }}&rdquo;</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% if sense.synonyms %}
+    <p class="synonyms">Synonyms: {{ sense.synonyms | join(", ") }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
