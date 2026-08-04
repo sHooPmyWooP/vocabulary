@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Vocabulary{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script>
+    // Apply saved theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
   <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
 </head>
 <body>
@@ -15,10 +24,27 @@
       <a href="/review">Review</a>
       <a href="/browse">Browse</a>
       <a href="/stats">Stats</a>
+      <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <span aria-hidden="true">◐</span>
+      </button>
     </nav>
   </header>
   <main class="container">
     {% block content %}{% endblock %}
   </main>
+  <script>
+    function toggleTheme() {
+      var root = document.documentElement;
+      var current = root.getAttribute("data-theme");
+      if (!current) {
+        // No explicit choice yet: flip away from whatever the system shows.
+        var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        current = systemDark ? "dark" : "light";
+      }
+      var next = current === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    }
+  </script>
 </body>
 </html>
