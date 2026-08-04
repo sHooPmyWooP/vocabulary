@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Vocabulary - Review{% endblock %}
+{% block content %}
+<section class="review">
+  <h1>Review</h1>
+  <div id="review-area">
+    {% if entry %}
+      {% include "_review_card.html" %}
+    {% else %}
+      {% include "_review_done.html" %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

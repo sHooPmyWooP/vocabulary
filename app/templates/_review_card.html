@@ -1,0 +1,38 @@
+<div class="review-card" data-testid="review-card">
+  <p class="review-progress">{{ remaining }} card{{ "s" if remaining != 1 else "" }} due</p>
+
+  <details class="flip">
+    <summary class="card-front">
+      <span class="card-word">{{ entry.word }}</span>
+      <span class="flip-hint">tap to reveal</span>
+    </summary>
+    <div class="card-back">
+      {% for sense in senses %}
+      <div class="sense">
+        <span class="pos">{{ sense.part_of_speech }}</span>
+        <ol>
+          {% for d in sense.definitions %}
+          <li>
+            {{ d.definition }}
+            {% if d.example %}<span class="example">&ldquo;{{ d.example }}&rdquo;</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+        {% if sense.synonyms %}
+        <p class="synonyms">Synonyms: {{ sense.synonyms | join(", ") }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+
+  <div class="grade-buttons">
+    {% for g, label in [("again", "Again"), ("hard", "Hard"), ("good", "Good"), ("easy", "Easy")] %}
+    <button class="grade grade-{{ g }}"
+            hx-post="/review/{{ entry.id }}/grade"
+            hx-vals='{"grade": "{{ g }}"}'
+            hx-target="#review-area"
+            hx-swap="innerHTML">{{ label }}</button>
+    {% endfor %}
+  </div>
+</div>

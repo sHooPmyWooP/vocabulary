@@ -1,6 +1,7 @@
 """FastAPI application: server-rendered Jinja + HTMX home page over SQLite."""
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import asynccontextmanager
 from datetime import date
@@ -11,7 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import dictionary_client, vocab_store
+from app import dictionary_client, scheduler, vocab_store
 from app.db import connect, init_db
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -21,11 +22,15 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 def _counts(conn: sqlite3.Connection) -> dict[str, int]:
     """Zero-state-safe home counts: total words and cards due today."""
     total = conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
-    due = conn.execute(
-        "SELECT COUNT(*) FROM entries WHERE due_date <= ?",
-        (date.today().isoformat(),),
-    ).fetchone()[0]
+    due = vocab_store.due_count(conn, today=date.today())
     return {"total_words": total, "due_today": due}
+
+
+def _card_context(entry: vocab_store.Entry) -> dict:
+    """Build the render context for a review card from its stored payload."""
+    payload = json.loads(entry.payload)
+    result = dictionary_client._parse(entry.word, payload)
+    return {"entry": entry, "senses": result.senses}
 
 
 def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
@@ -78,6 +83,31 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
     def remove_entry(request: Request, entry_id: int) -> HTMLResponse:
         vocab_store.delete_entry(app.state.conn, entry_id)
         return HTMLResponse('<p class="muted">Removed.</p>')
+
+    def _next_card_response(request: Request) -> HTMLResponse:
+        due = vocab_store.due_cards(app.state.conn, today=date.today())
+        if not due:
+            return templates.TemplateResponse(request, "_review_done.html", {})
+        ctx = _card_context(due[0])
+        ctx["remaining"] = len(due)
+        return templates.TemplateResponse(request, "_review_card.html", ctx)
+
+    @app.get("/review", response_class=HTMLResponse)
+    def review_page(request: Request) -> HTMLResponse:
+        due = vocab_store.due_cards(app.state.conn, today=date.today())
+        ctx: dict = {"remaining": len(due)}
+        if due:
+            ctx.update(_card_context(due[0]))
+        return templates.TemplateResponse(request, "review.html", ctx)
+
+    @app.post("/review/{entry_id}/grade", response_class=HTMLResponse)
+    def grade_card(
+        request: Request, entry_id: int, grade: str = Form(...)
+    ) -> HTMLResponse:
+        if grade not in scheduler.GRADE_QUALITY:
+            return HTMLResponse("unknown grade", status_code=400)
+        vocab_store.record_review(app.state.conn, entry_id, grade)
+        return _next_card_response(request)
 
     return app
 
