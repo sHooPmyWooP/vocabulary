@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Vocabulary - Browse{% endblock %}
+{% block content %}
+<section class="browse">
+  <h1>Browse words</h1>
+  <form class="browse-controls"
+        hx-get="/browse"
+        hx-target="#browse-list"
+        hx-swap="innerHTML"
+        hx-trigger="submit, keyup changed delay:300ms from:input[name='q'], change from:select">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="Search words" autocomplete="off">
+    <select name="sort">
+      {% for value, label in [("added", "Date added"), ("due", "Due date"), ("maturity", "Maturity")] %}
+      <option value="{{ value }}" {{ "selected" if sort == value else "" }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <div id="browse-list" class="browse-list">
+    {% include "_browse_list.html" %}
+  </div>
+</section>
+{% endblock %}

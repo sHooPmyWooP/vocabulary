@@ -193,3 +193,32 @@ body {
 @media (max-width: 480px) {
   .grade-buttons { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Browse / manage */
+.browse-controls { display: flex; gap: 0.5rem; margin: 1rem 0 1.25rem; }
+.browse-controls input[name="q"] {
+  flex: 1; padding: 0.6rem 0.85rem; font-size: 1rem;
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.browse-controls select {
+  padding: 0.6rem 0.75rem; font-size: 0.95rem;
+  border: 1px solid var(--border); border-radius: 8px; background: #fff;
+}
+.browse-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.browse-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.75rem 1rem; background: var(--card);
+  border: 1px solid var(--border); border-radius: 10px;
+}
+.browse-main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.browse-word { font-weight: 600; font-size: 1.05rem; }
+.browse-meta { color: var(--muted); font-size: 0.82rem; }
+.browse-note { margin: 0.15rem 0 0; font-size: 0.9rem; }
+.browse-actions { display: flex; gap: 0.75rem; flex-shrink: 0; }
+.link-btn.danger { color: #d9534f; }
+.browse-edit { align-items: stretch; }
+.browse-edit-fields { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
+.browse-edit-fields input {
+  padding: 0.5rem 0.75rem; font-size: 1rem;
+  border: 1px solid var(--border); border-radius: 8px;
+}

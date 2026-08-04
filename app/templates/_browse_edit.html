@@ -1,0 +1,16 @@
+<form class="browse-row browse-edit" id="entry-{{ entry.id }}"
+      hx-post="/entry/{{ entry.id }}/edit"
+      hx-target="#entry-{{ entry.id }}"
+      hx-swap="outerHTML">
+  <div class="browse-edit-fields">
+    <input type="text" name="word" value="{{ entry.word }}" required autofocus>
+    <input type="text" name="note" value="{{ entry.note }}" placeholder="Note (optional)">
+  </div>
+  <div class="browse-actions">
+    <button type="submit" class="link-btn">Save</button>
+    <button type="button" class="link-btn"
+            hx-get="/entry/{{ entry.id }}/row"
+            hx-target="#entry-{{ entry.id }}"
+            hx-swap="outerHTML">Cancel</button>
+  </div>
+</form>

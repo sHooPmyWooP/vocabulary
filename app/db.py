@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS entries (
     interval      INTEGER NOT NULL DEFAULT 0,
     repetitions   INTEGER NOT NULL DEFAULT 0,
     due_date      TEXT    NOT NULL,
-    state         TEXT    NOT NULL DEFAULT 'new'
+    state         TEXT    NOT NULL DEFAULT 'new',
+    note          TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS review_log (
@@ -42,6 +43,14 @@ def connect(db_path: str | os.PathLike[str] = DEFAULT_DB_PATH) -> sqlite3.Connec
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create tables if they do not yet exist."""
+    """Create tables if they do not yet exist, and apply light migrations."""
     conn.executescript(SCHEMA)
+    _migrate(conn)
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Additive migrations for databases created before a column existed."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(entries)")}
+    if "note" not in cols:
+        conn.execute("ALTER TABLE entries ADD COLUMN note TEXT NOT NULL DEFAULT ''")

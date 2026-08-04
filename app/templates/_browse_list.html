@@ -1,0 +1,7 @@
+{% if entries %}
+  {% for entry in entries %}
+    {% include "_browse_row.html" %}
+  {% endfor %}
+{% else %}
+  <p class="muted">No words match.</p>
+{% endif %}

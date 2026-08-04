@@ -140,3 +140,88 @@ def test_record_review_again_resets_and_keeps_due(conn):
     assert lapsed.repetitions == 0
     assert lapsed.interval == 1
     assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 3
+
+
+# --- Browse / manage --------------------------------------------------------
+
+
+def test_list_entries_returns_all(conn):
+    vocab_store.add_entry(conn, "run", PAYLOAD)
+    vocab_store.add_entry(conn, "walk", PAYLOAD)
+    vocab_store.add_entry(conn, "jump", PAYLOAD)
+
+    words = {e.word for e in vocab_store.list_entries(conn)}
+    assert words == {"run", "walk", "jump"}
+
+
+def test_list_entries_search_filters_case_insensitively(conn):
+    vocab_store.add_entry(conn, "running", PAYLOAD)
+    vocab_store.add_entry(conn, "runner", PAYLOAD)
+    vocab_store.add_entry(conn, "walk", PAYLOAD)
+
+    hits = {e.word for e in vocab_store.list_entries(conn, search="RUN")}
+    assert hits == {"running", "runner"}
+
+
+def test_list_entries_sort_by_added_is_newest_first(conn):
+    a = vocab_store.add_entry(conn, "alpha", PAYLOAD)
+    b = vocab_store.add_entry(conn, "bravo", PAYLOAD)
+    # Force a stable added_at ordering independent of clock resolution.
+    conn.execute("UPDATE entries SET added_at = ? WHERE id = ?", ("2024-01-01T00:00:00+00:00", a.id))
+    conn.execute("UPDATE entries SET added_at = ? WHERE id = ?", ("2024-02-01T00:00:00+00:00", b.id))
+    conn.commit()
+
+    ordered = [e.word for e in vocab_store.list_entries(conn, sort="added")]
+    assert ordered == ["bravo", "alpha"]
+
+
+def test_list_entries_sort_by_due_date_ascending(conn):
+    a = vocab_store.add_entry(conn, "alpha", PAYLOAD)
+    b = vocab_store.add_entry(conn, "bravo", PAYLOAD)
+    _set_due(conn, a.id, "2024-03-10")
+    _set_due(conn, b.id, "2024-01-05")
+
+    ordered = [e.word for e in vocab_store.list_entries(conn, sort="due")]
+    assert ordered == ["bravo", "alpha"]
+
+
+def test_list_entries_sort_by_maturity(conn):
+    new = vocab_store.add_entry(conn, "newbie", PAYLOAD)
+    learning = vocab_store.add_entry(conn, "midway", PAYLOAD)
+    mature = vocab_store.add_entry(conn, "veteran", PAYLOAD)
+    conn.execute("UPDATE entries SET interval = 0 WHERE id = ?", (new.id,))
+    conn.execute("UPDATE entries SET interval = 5 WHERE id = ?", (learning.id,))
+    conn.execute("UPDATE entries SET interval = 40 WHERE id = ?", (mature.id,))
+    conn.commit()
+
+    ordered = [e.word for e in vocab_store.list_entries(conn, sort="maturity")]
+    assert ordered == ["newbie", "midway", "veteran"]
+
+
+def test_update_entry_edits_word_and_note(conn):
+    entry = vocab_store.add_entry(conn, "colour", PAYLOAD)
+    updated = vocab_store.update_entry(conn, entry.id, word="Color", note="US spelling")
+
+    assert updated.word == "color"  # re-normalized
+    assert updated.note == "US spelling"
+    # Round-trips from the store.
+    reloaded = vocab_store.get_by_id(conn, entry.id)
+    assert reloaded.word == "color"
+    assert reloaded.note == "US spelling"
+
+
+def test_update_entry_rejects_blank_word(conn):
+    entry = vocab_store.add_entry(conn, "run", PAYLOAD)
+    with pytest.raises(ValueError):
+        vocab_store.update_entry(conn, entry.id, word="   ")
+
+
+def test_update_entry_missing_id_raises(conn):
+    with pytest.raises(ValueError):
+        vocab_store.update_entry(conn, 999, note="nope")
+
+
+def test_delete_entry_via_browse_removes_row(conn):
+    e = vocab_store.add_entry(conn, "run", PAYLOAD)
+    vocab_store.delete_entry(conn, e.id)
+    assert vocab_store.list_entries(conn) == []

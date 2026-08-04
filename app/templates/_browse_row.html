@@ -1,0 +1,21 @@
+<div class="browse-row" id="entry-{{ entry.id }}" data-testid="browse-row">
+  <div class="browse-main">
+    <span class="browse-word">{{ entry.word }}</span>
+    <span class="browse-meta">
+      {{ entry.state }} &middot; due {{ entry.due_date }}
+      {% if entry.lookup_count > 1 %}&middot; {{ entry.lookup_count }}&times; looked up{% endif %}
+    </span>
+    {% if entry.note %}<p class="browse-note">{{ entry.note }}</p>{% endif %}
+  </div>
+  <div class="browse-actions">
+    <button class="link-btn"
+            hx-get="/entry/{{ entry.id }}/edit"
+            hx-target="#entry-{{ entry.id }}"
+            hx-swap="outerHTML">Edit</button>
+    <button class="link-btn danger"
+            hx-delete="/entry/{{ entry.id }}"
+            hx-target="#entry-{{ entry.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this word?">Delete</button>
+  </div>
+</div>

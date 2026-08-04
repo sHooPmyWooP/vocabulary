@@ -29,6 +29,7 @@ class Entry:
     repetitions: int
     due_date: str
     state: str
+    note: str = ""
 
 
 def _row_to_entry(row: sqlite3.Row) -> Entry:
@@ -43,6 +44,7 @@ def _row_to_entry(row: sqlite3.Row) -> Entry:
         repetitions=row["repetitions"],
         due_date=row["due_date"],
         state=row["state"],
+        note=row["note"] if "note" in row.keys() else "",
     )
 
 
@@ -92,6 +94,68 @@ def delete_entry(conn: sqlite3.Connection, entry_id: int) -> None:
     """Delete an entry (and its review-log rows via cascade)."""
     conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
     conn.commit()
+
+
+# Browse/manage sort keys mapped to safe ORDER BY clauses (never user SQL).
+_SORTS: dict[str, str] = {
+    "added": "added_at DESC, id DESC",
+    "due": "due_date ASC, id ASC",
+    "maturity": "interval ASC, id ASC",
+}
+
+
+def list_entries(
+    conn: sqlite3.Connection,
+    *,
+    search: str | None = None,
+    sort: str = "added",
+) -> list[Entry]:
+    """List entries for the browse screen, optionally filtered and sorted.
+
+    ``search`` filters by word (normalized substring, case-insensitive).
+    ``sort`` is one of ``added`` (newest first), ``due`` (soonest first) or
+    ``maturity`` (least mature first, by SM-2 interval).
+    """
+    clauses = _SORTS.get(sort, _SORTS["added"])
+    sql = "SELECT * FROM entries"
+    params: list[Any] = []
+    if search and search.strip():
+        sql += " WHERE word LIKE ?"
+        params.append(f"%{normalize(search)}%")
+    sql += f" ORDER BY {clauses}"
+    rows = conn.execute(sql, params).fetchall()
+    return [_row_to_entry(r) for r in rows]
+
+
+def update_entry(
+    conn: sqlite3.Connection,
+    entry_id: int,
+    *,
+    word: str | None = None,
+    note: str | None = None,
+) -> Entry:
+    """Inline-edit an entry's word and/or note.
+
+    The word is re-normalized (trimmed, lowercased). A blank word is rejected.
+    Fields left as ``None`` are unchanged.
+    """
+    entry = get_by_id(conn, entry_id)
+    if entry is None:
+        raise ValueError(f"no entry with id {entry_id}")
+
+    new_word = entry.word
+    if word is not None:
+        new_word = normalize(word)
+        if not new_word:
+            raise ValueError("word must not be blank")
+    new_note = entry.note if note is None else note.strip()
+
+    conn.execute(
+        "UPDATE entries SET word = ?, note = ? WHERE id = ?",
+        (new_word, new_note, entry_id),
+    )
+    conn.commit()
+    return get_by_id(conn, entry_id)  # type: ignore[return-value]
 
 
 def _today_iso(today: date | str | None) -> str:

@@ -84,6 +84,46 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
         vocab_store.delete_entry(app.state.conn, entry_id)
         return HTMLResponse('<p class="muted">Removed.</p>')
 
+    @app.get("/browse", response_class=HTMLResponse)
+    def browse_page(
+        request: Request, q: str = "", sort: str = "added"
+    ) -> HTMLResponse:
+        entries = vocab_store.list_entries(app.state.conn, search=q or None, sort=sort)
+        ctx = {"entries": entries, "q": q, "sort": sort}
+        template = "_browse_list.html" if request.headers.get("HX-Request") else "browse.html"
+        return templates.TemplateResponse(request, template, ctx)
+
+    def _row_response(request: Request, entry_id: int) -> HTMLResponse:
+        entry = vocab_store.get_by_id(app.state.conn, entry_id)
+        return templates.TemplateResponse(request, "_browse_row.html", {"entry": entry})
+
+    @app.get("/entry/{entry_id}/row", response_class=HTMLResponse)
+    def entry_row(request: Request, entry_id: int) -> HTMLResponse:
+        entry = vocab_store.get_by_id(app.state.conn, entry_id)
+        if entry is None:
+            return HTMLResponse("not found", status_code=404)
+        return templates.TemplateResponse(request, "_browse_row.html", {"entry": entry})
+
+    @app.get("/entry/{entry_id}/edit", response_class=HTMLResponse)
+    def edit_form(request: Request, entry_id: int) -> HTMLResponse:
+        entry = vocab_store.get_by_id(app.state.conn, entry_id)
+        if entry is None:
+            return HTMLResponse("not found", status_code=404)
+        return templates.TemplateResponse(request, "_browse_edit.html", {"entry": entry})
+
+    @app.post("/entry/{entry_id}/edit", response_class=HTMLResponse)
+    def edit_entry(
+        request: Request,
+        entry_id: int,
+        word: str = Form(...),
+        note: str = Form(""),
+    ) -> HTMLResponse:
+        try:
+            vocab_store.update_entry(app.state.conn, entry_id, word=word, note=note)
+        except ValueError:
+            return HTMLResponse("invalid edit", status_code=400)
+        return _row_response(request, entry_id)
+
     def _next_card_response(request: Request) -> HTMLResponse:
         due = vocab_store.due_cards(app.state.conn, today=date.today())
         if not due:
