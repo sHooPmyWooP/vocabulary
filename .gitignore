@@ -1,0 +1,28 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+.venv/
+venv/
+
+# uv
+uv.lock
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data / DB
+*.db
+*.sqlite
+*.sqlite3
+/data/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.egg-info/

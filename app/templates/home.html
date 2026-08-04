@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Vocabulary - Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Your vocabulary at a glance</h1>
+  <div class="stat-cards">
+    <div class="stat-card">
+      <span class="stat-number" data-testid="due-today">{{ due_today }}</span>
+      <span class="stat-label">Due today</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number" data-testid="total-words">{{ total_words }}</span>
+      <span class="stat-label">Total words</span>
+    </div>
+  </div>
+  <p class="hint">Head to <a href="/review">Review</a> to drill due cards, or look up a new word.</p>
+</section>
+{% endblock %}
