@@ -27,10 +27,17 @@ def _counts(conn: sqlite3.Connection) -> dict[str, int]:
 
 
 def _card_context(entry: vocab_store.Entry) -> dict:
-    """Build the render context for a review card from its stored payload."""
+    """Build the render context for a review card from its stored payload.
+
+    Stored payloads come in two shapes: the legacy dictapi raw JSON array,
+    and the current canonical object. Detect by type and route accordingly.
+    """
     payload = json.loads(entry.payload)
-    result = dictionary_client._parse(entry.word, payload)
-    return {"entry": entry, "senses": result.senses}
+    if isinstance(payload, list):
+        senses = dictionary_client._parse(entry.word, payload).senses
+    else:
+        senses = dictionary_client.senses_from_canonical(payload)
+    return {"entry": entry, "senses": senses}
 
 
 def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
@@ -61,6 +68,12 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
     def lookup(request: Request, word: str = Form(...)) -> HTMLResponse:
         conn = app.state.conn
         result = dictionary_client.lookup(word)
+        if isinstance(result, dictionary_client.LookupError):
+            return templates.TemplateResponse(
+                request,
+                "_lookup_result.html",
+                {"lookup_error": True, "word": result.word},
+            )
         if isinstance(result, dictionary_client.NotFound):
             return templates.TemplateResponse(
                 request,
@@ -68,7 +81,9 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
                 {"not_found": True, "word": result.word},
             )
         existed = vocab_store.get_by_word(conn, result.word) is not None
-        entry = vocab_store.add_entry(conn, result.word, result.payload)
+        entry = vocab_store.add_entry(
+            conn, result.word, dictionary_client.to_canonical(result)
+        )
         return templates.TemplateResponse(
             request,
             "_lookup_result.html",

@@ -2,7 +2,7 @@
 {% block title %}Vocabulary - Lookup{% endblock %}
 {% block content %}
 <section class="lookup">
-  <h1>Look up a word</h1>
+  <h1>Look up a word or phrase</h1>
   <form class="lookup-form"
         hx-post="/lookup"
         hx-target="#lookup-result"
@@ -10,11 +10,12 @@
         hx-on::after-request="this.reset(); this.word.focus()">
     <input type="text"
            name="word"
-           placeholder="Type a word and press enter"
+           placeholder="Type a word or phrase and press enter"
            autocomplete="off"
            autofocus
            required>
     <button type="submit">Look up</button>
+    <span class="spinner htmx-indicator" role="status" aria-label="Looking up"></span>
   </form>
   <div id="lookup-result" class="lookup-result"></div>
 </section>

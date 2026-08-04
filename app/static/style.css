@@ -169,6 +169,20 @@ body {
   color: #fff;
   cursor: pointer;
 }
+/* Lookup spinner: hidden by default, shown by HTMX during the request. */
+.spinner {
+  display: none;
+  align-self: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 3px solid var(--border, #ccc);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.htmx-request .spinner,
+.spinner.htmx-request { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .result-card {
   border: 1px solid var(--border, #e2e2e2);
   border-radius: 10px;

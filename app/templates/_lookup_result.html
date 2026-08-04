@@ -1,4 +1,8 @@
-{% if not_found %}
+{% if lookup_error %}
+<div class="result-card not-found">
+  <p>Couldn&rsquo;t reach the dictionary for <strong>"{{ word }}"</strong>. The service may be temporarily down &mdash; please try again in a moment. Nothing was added.</p>
+</div>
+{% elif not_found %}
 <div class="result-card not-found">
   <p><strong>"{{ word }}"</strong> was not found in the dictionary. Nothing was added.</p>
 </div>
