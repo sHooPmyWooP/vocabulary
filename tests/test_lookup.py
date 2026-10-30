@@ -34,6 +34,10 @@ def make_client(tmp_path, monkeypatch, status=200, body=None):
         return dictionary_client._parse(dictionary_client.normalize(word), body or PAYLOAD)
 
     monkeypatch.setattr("app.main.dictionary_client.lookup", fake_lookup)
+    monkeypatch.setattr("app.main.translation_client.translate", lambda result: None)
+    monkeypatch.setattr(
+        "app.main.translation_client.generate_lookup", lambda word: None
+    )
     app = create_app(conn)
     return TestClient(app), conn
 
@@ -47,10 +51,91 @@ def test_lookup_success_shows_senses_and_autoadds(tmp_path, monkeypatch):
     assert "To move rapidly." in body
     assert "verb" in body
     assert "sprint" in body
+    assert "Source: Free Dictionary API" in body
     # Auto-added exactly one row.
     assert conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 1
     # Undo affordance present.
     assert "undo" in body.lower() or "remove" in body.lower()
+
+
+def test_lookup_renders_and_stores_german_translation(tmp_path, monkeypatch):
+    client, conn = make_client(tmp_path, monkeypatch)
+    generated = dictionary_client._parse("run", PAYLOAD)
+    from app import translation_client
+
+    monkeypatch.setattr(
+        "app.main.translation_client.translate",
+        lambda result: translation_client.TranslationResult(
+            language="de",
+            senses=[
+                translation_client.SenseTranslation(
+                    translation="laufen",
+                    explanation="Sich schnell zu Fuß bewegen.",
+                )
+            ],
+        ),
+    )
+
+    resp = client.post("/lookup", data={"word": generated.word})
+
+    assert "Deutsch: laufen" in resp.text
+    assert "Sich schnell zu Fuß bewegen." in resp.text
+    stored = conn.execute("SELECT payload FROM entries").fetchone()[0]
+    assert '"translation": "laufen"' in stored
+
+
+def test_dictionary_miss_uses_foundry_fallback(tmp_path, monkeypatch):
+    client, conn = make_client(tmp_path, monkeypatch, status=404)
+    from app import translation_client
+
+    generated_result = dictionary_client.LookupResult(
+        word="spill the tea",
+        senses=[
+            dictionary_client.Sense(
+                part_of_speech="idiom",
+                definitions=[
+                    dictionary_client.Definition(
+                        definition="To share gossip.",
+                        example="Come on, spill the tea.",
+                    )
+                ],
+                synonyms=["gossip"],
+            )
+        ],
+        payload={},
+        source="azure-ai-foundry",
+    )
+    calls = 0
+
+    def generate(word):
+        nonlocal calls
+        calls += 1
+        return translation_client.GeneratedLookup(
+            result=generated_result,
+            translation=translation_client.TranslationResult(
+                language="de",
+                senses=[
+                    translation_client.SenseTranslation(
+                        "auspacken", "Klatsch oder Geheimnisse erzählen."
+                    )
+                ],
+            ),
+        )
+
+    monkeypatch.setattr("app.main.translation_client.generate_lookup", generate)
+
+    resp = client.post("/lookup", data={"word": "spill the tea"})
+    repeated = client.post("/lookup", data={"word": "SPILL THE TEA"})
+
+    assert "To share gossip." in resp.text
+    assert "Deutsch: auspacken" in resp.text
+    assert "Source: Azure AI Foundry" in resp.text
+    assert "AI-generated definition" in resp.text
+    stored = conn.execute("SELECT word, payload FROM entries").fetchone()
+    assert stored["word"] == "spill the tea"
+    assert '"generated": true' in stored["payload"]
+    assert "Deutsch: auspacken" in repeated.text
+    assert calls == 1
 
 
 def test_lookup_404_shows_not_found_and_adds_nothing(tmp_path, monkeypatch):

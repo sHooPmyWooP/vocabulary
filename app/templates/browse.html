@@ -1,22 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Vocabulary - Browse{% endblock %}
 {% block content %}
-<section class="browse">
-  <h1>Browse words</h1>
+<section class="browse page-section">
+  <header class="page-header">
+    <span class="eyebrow">Your collection</span>
+    <h1>Browse vocabulary</h1>
+    <p>Search your saved words, add personal notes, and see what is coming up for review.</p>
+  </header>
   <form class="browse-controls"
         hx-get="/browse"
         hx-target="#browse-list"
         hx-swap="innerHTML"
         hx-trigger="submit, keyup changed delay:300ms from:input[name='q'], change from:select">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="Search words" autocomplete="off">
-    <select name="sort">
-      {% for value, label in [("added", "Date added"), ("due", "Due date"), ("maturity", "Maturity")] %}
-      <option value="{{ value }}" {{ "selected" if sort == value else "" }}>{{ label }}</option>
-      {% endfor %}
-    </select>
+    <div class="search-wrap">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="Search your words" aria-label="Search vocabulary" autocomplete="off">
+    </div>
+    <label class="sort-control">
+      <span>Sort by</span>
+      <select name="sort">
+        {% for value, label in [("added", "Date added"), ("due", "Due date"), ("maturity", "Maturity")] %}
+        <option value="{{ value }}" {{ "selected" if sort == value else "" }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
   </form>
-  <div id="browse-list" class="browse-list">
+  <div id="browse-list" class="browse-list" aria-live="polite">
     {% include "_browse_list.html" %}
   </div>
 </section>

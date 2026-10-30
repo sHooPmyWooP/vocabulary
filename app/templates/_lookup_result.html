@@ -1,26 +1,38 @@
 {% if lookup_error %}
-<div class="result-card not-found">
-  <p>Couldn&rsquo;t reach the dictionary for <strong>"{{ word }}"</strong>. The service may be temporarily down &mdash; please try again in a moment. Nothing was added.</p>
+<div class="result-card message-card not-found">
+  <span class="message-icon" aria-hidden="true">!</span>
+  <div><strong>Dictionary unavailable</strong><p>Couldn&rsquo;t reach the dictionary for <strong>“{{ word }}”</strong>. Please try again in a moment. Nothing was added.</p></div>
 </div>
 {% elif not_found %}
-<div class="result-card not-found">
-  <p><strong>"{{ word }}"</strong> was not found in the dictionary. Nothing was added.</p>
+<div class="result-card message-card not-found">
+  <span class="message-icon" aria-hidden="true">?</span>
+  <div><strong>Word not found</strong><p><strong>“{{ word }}”</strong> could not be identified. Nothing was added.</p></div>
 </div>
 {% else %}
 <div class="result-card">
   <div class="result-head">
-    <h2>{{ result.word }}</h2>
-    {% if already_known %}
-    <span class="badge" data-testid="lookup-count">Already in your list &middot; looked up {{ entry.lookup_count }}&times;</span>
-    {% else %}
-    <span class="badge added">Added to your list</span>
-    {% endif %}
-    <button class="link-btn"
+    <div class="result-title">
+      <span class="result-kicker">Lookup result</span>
+      <h2>{{ result.word }}</h2>
+    </div>
+    <button class="link-btn danger subtle"
             hx-delete="/entry/{{ entry.id }}"
             hx-target="#lookup-result"
             hx-swap="innerHTML">Undo / remove</button>
   </div>
+  <div class="result-badges">
+    {% if already_known %}
+    <span class="badge" data-testid="lookup-count">Already saved · {{ entry.lookup_count }} lookups</span>
+    {% else %}
+    <span class="badge added">✓ Added to your list</span>
+    {% endif %}
+    <span class="badge source-badge">Source: {{ source_label }}</span>
+    {% if ai_generated %}
+    <span class="badge ai-generated">AI-generated definition</span>
+    {% endif %}
+  </div>
 
+  <div class="result-senses">
   {% for sense in result.senses %}
   <div class="sense">
     <span class="pos">{{ sense.part_of_speech }}</span>
@@ -28,14 +40,22 @@
       {% for d in sense.definitions %}
       <li>
         {{ d.definition }}
-        {% if d.example %}<span class="example">&ldquo;{{ d.example }}&rdquo;</span>{% endif %}
+        {% if d.example %}<span class="example">“{{ d.example }}”</span>{% endif %}
       </li>
       {% endfor %}
     </ol>
     {% if sense.synonyms %}
-    <p class="synonyms">Synonyms: {{ sense.synonyms | join(", ") }}</p>
+    <p class="synonyms"><strong>Synonyms</strong> {{ sense.synonyms | join(", ") }}</p>
+    {% endif %}
+    {% if translations and loop.index0 < translations | length %}
+    <div class="translation" lang="de">
+      <span class="translation-label">German translation</span>
+      <strong>Deutsch: {{ translations[loop.index0].translation }}</strong>
+      <span>{{ translations[loop.index0].explanation }}</span>
+    </div>
     {% endif %}
   </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}

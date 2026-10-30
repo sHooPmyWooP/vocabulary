@@ -1,22 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Vocabulary - Lookup{% endblock %}
 {% block content %}
-<section class="lookup">
-  <h1>Look up a word or phrase</h1>
-  <form class="lookup-form"
-        hx-post="/lookup"
-        hx-target="#lookup-result"
-        hx-swap="innerHTML"
-        hx-on::after-request="this.reset(); this.word.focus()">
-    <input type="text"
-           name="word"
-           placeholder="Type a word or phrase and press enter"
-           autocomplete="off"
-           autofocus
-           required>
-    <button type="submit">Look up</button>
-    <span class="spinner htmx-indicator" role="status" aria-label="Looking up"></span>
-  </form>
-  <div id="lookup-result" class="lookup-result"></div>
+<section class="lookup page-section">
+  <header class="page-header">
+    <span class="eyebrow">Discover something new</span>
+    <h1>Look up a word or phrase</h1>
+    <p>Get English definitions, examples, synonyms, and a contextual German translation. Successful lookups join your review deck automatically.</p>
+  </header>
+
+  <div class="lookup-panel">
+    <form class="lookup-form"
+          hx-post="/lookup"
+          hx-target="#lookup-result"
+          hx-swap="innerHTML"
+          hx-on::after-request="this.reset(); this.word.focus()">
+      <div class="lookup-input-wrap">
+        <span class="input-icon" aria-hidden="true">⌕</span>
+        <input type="text"
+               name="word"
+               placeholder="Try ‘serendipity’ or ‘spill the tea’"
+               aria-label="English word or phrase"
+               autocomplete="off"
+               autofocus
+               required>
+      </div>
+      <button type="submit">Look up <span aria-hidden="true">→</span></button>
+      <span class="spinner htmx-indicator" role="status" aria-label="Looking up"></span>
+    </form>
+    <p class="lookup-tip"><span aria-hidden="true">✦</span> Tip: informal phrases and slang are supported through the AI fallback.</p>
+  </div>
+
+  <div id="lookup-result" class="lookup-result" aria-live="polite"></div>
 </section>
 {% endblock %}

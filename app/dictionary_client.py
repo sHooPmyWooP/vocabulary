@@ -48,6 +48,7 @@ class LookupResult:
     word: str
     senses: list[Sense]
     payload: Any
+    source: str = ""
 
 
 @dataclass(frozen=True)
@@ -84,7 +85,12 @@ def _parse(word: str, payload: Any) -> LookupResult:
                     synonyms=list(meaning.get("synonyms", [])),
                 )
             )
-    return LookupResult(word=word, senses=senses, payload=payload)
+    return LookupResult(
+        word=word,
+        senses=senses,
+        payload=payload,
+        source="free-dictionary-api",
+    )
 
 
 def to_canonical(result: LookupResult) -> dict:
@@ -96,6 +102,7 @@ def to_canonical(result: LookupResult) -> dict:
     return {
         "schema": "canonical/1",
         "word": result.word,
+        "source": result.source,
         "senses": [
             {
                 "part_of_speech": s.part_of_speech,
@@ -157,7 +164,12 @@ def _parse_wiktionary(word: str, payload: Any) -> LookupResult:
                     synonyms=[],
                 )
             )
-    return LookupResult(word=word, senses=senses, payload=payload)
+    return LookupResult(
+        word=word,
+        senses=senses,
+        payload=payload,
+        source="wiktionary",
+    )
 
 
 def _lookup_dictapi(
@@ -243,13 +255,15 @@ def lookup(
     try:
         if len(normalized.split()) > 1:
             return _lookup_wiktionary(normalized, client)
-        # Single word: Free Dictionary API, with Wiktionary as a fallback ONLY
-        # when dictapi is unreachable (5xx/timeout/network). A genuine 404
-        # stays NotFound and does not fall back.
+        # Single word: try the Free Dictionary API first, then Wiktionary when
+        # the first source has no entry or is temporarily unavailable.
         try:
-            return _lookup_dictapi(normalized, client)
+            result = _lookup_dictapi(normalized, client)
+            if not isinstance(result, NotFound):
+                return result
         except httpx.HTTPError:
-            return _lookup_wiktionary(normalized, client)
+            pass
+        return _lookup_wiktionary(normalized, client)
     except httpx.HTTPError:
         # Both sources unreachable: transient failure, not "not found".
         return LookupError(word=normalized)

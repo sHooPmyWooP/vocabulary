@@ -1,10 +1,17 @@
 <div class="review-card" data-testid="review-card">
-  <p class="review-progress">{{ remaining }} card{{ "s" if remaining != 1 else "" }} due</p>
+  <div class="review-toolbar">
+    <p class="review-progress"><strong>{{ remaining }}</strong> card{{ "s" if remaining != 1 else "" }} due</p>
+    <div class="review-badges">
+      <span class="badge source-badge">Source: {{ source_label }}</span>
+      {% if ai_generated %}<span class="badge ai-generated">AI-generated definition</span>{% endif %}
+    </div>
+  </div>
 
   <details class="flip">
     <summary class="card-front">
+      <span class="card-kicker">What does this mean?</span>
       <span class="card-word">{{ entry.word }}</span>
-      <span class="flip-hint">tap to reveal</span>
+      <span class="flip-hint"><span aria-hidden="true">↕</span> Tap to reveal the answer</span>
     </summary>
     <div class="card-back">
       {% for sense in senses %}
@@ -14,25 +21,33 @@
           {% for d in sense.definitions %}
           <li>
             {{ d.definition }}
-            {% if d.example %}<span class="example">&ldquo;{{ d.example }}&rdquo;</span>{% endif %}
+            {% if d.example %}<span class="example">“{{ d.example }}”</span>{% endif %}
           </li>
           {% endfor %}
         </ol>
         {% if sense.synonyms %}
-        <p class="synonyms">Synonyms: {{ sense.synonyms | join(", ") }}</p>
+        <p class="synonyms"><strong>Synonyms</strong> {{ sense.synonyms | join(", ") }}</p>
+        {% endif %}
+        {% if translations and loop.index0 < translations | length %}
+        <div class="translation" lang="de">
+          <span class="translation-label">German</span>
+          <strong>Deutsch: {{ translations[loop.index0].translation }}</strong>
+          <span>{{ translations[loop.index0].explanation }}</span>
+        </div>
         {% endif %}
       </div>
       {% endfor %}
     </div>
   </details>
 
+  <p class="grade-prompt">How well did you remember it?</p>
   <div class="grade-buttons">
-    {% for g, label in [("again", "Again"), ("hard", "Hard"), ("good", "Good"), ("easy", "Easy")] %}
+    {% for g, label, hint in [("again", "Again", "1 day"), ("hard", "Hard", "Tough"), ("good", "Good", "Got it"), ("easy", "Easy", "Effortless")] %}
     <button class="grade grade-{{ g }}"
             hx-post="/review/{{ entry.id }}/grade"
             hx-vals='{"grade": "{{ g }}"}'
             hx-target="#review-area"
-            hx-swap="innerHTML">{{ label }}</button>
+            hx-swap="innerHTML"><strong>{{ label }}</strong><small>{{ hint }}</small></button>
     {% endfor %}
   </div>
 </div>

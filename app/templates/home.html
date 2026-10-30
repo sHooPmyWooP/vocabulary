@@ -2,17 +2,47 @@
 {% block title %}Vocabulary - Home{% endblock %}
 {% block content %}
 <section class="hero">
-  <h1>Your vocabulary at a glance</h1>
-  <div class="stat-cards">
-    <div class="stat-card">
-      <span class="stat-number" data-testid="due-today">{{ due_today }}</span>
-      <span class="stat-label">Due today</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-number" data-testid="total-words">{{ total_words }}</span>
-      <span class="stat-label">Total words</span>
+  <div class="hero-copy">
+    <span class="eyebrow">Your personal word collection</span>
+    <h1>Turn curious words into <span>lasting knowledge.</span></h1>
+    <p class="hero-lead">Look up anything that catches your attention, get a German translation, and remember it with focused daily reviews.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="/lookup"><span aria-hidden="true">⌕</span> Look up a word</a>
+      <a class="button secondary" href="/review"><span aria-hidden="true">◆</span> Start review</a>
     </div>
   </div>
-  <p class="hint">Head to <a href="/review">Review</a> to drill due cards, or look up a new word.</p>
+
+  <div class="stat-cards home-stats">
+    <a class="stat-card due-card" href="/review">
+      <span class="stat-icon" aria-hidden="true">◆</span>
+      <span class="stat-number" data-testid="due-today">{{ due_today }}</span>
+      <span class="stat-label">Due today</span>
+      <span class="stat-action">Review now →</span>
+    </a>
+    <a class="stat-card collection-card" href="/browse">
+      <span class="stat-icon" aria-hidden="true">▤</span>
+      <span class="stat-number" data-testid="total-words">{{ total_words }}</span>
+      <span class="stat-label">Words collected</span>
+      <span class="stat-action">Browse collection →</span>
+    </a>
+  </div>
+</section>
+
+<section class="quick-actions" aria-label="Quick actions">
+  <a class="quick-card" href="/lookup">
+    <span class="quick-icon lookup-icon" aria-hidden="true">Aa</span>
+    <span><strong>Discover</strong><small>Find definitions and translations</small></span>
+    <span class="quick-arrow" aria-hidden="true">→</span>
+  </a>
+  <a class="quick-card" href="/review">
+    <span class="quick-icon review-icon" aria-hidden="true">✓</span>
+    <span><strong>Remember</strong><small>Strengthen words with spaced repetition</small></span>
+    <span class="quick-arrow" aria-hidden="true">→</span>
+  </a>
+  <a class="quick-card" href="/stats">
+    <span class="quick-icon stats-icon" aria-hidden="true">↗</span>
+    <span><strong>Grow</strong><small>Watch your vocabulary develop</small></span>
+    <span class="quick-arrow" aria-hidden="true">→</span>
+  </a>
 </section>
 {% endblock %}

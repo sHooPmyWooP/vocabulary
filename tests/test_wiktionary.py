@@ -74,6 +74,7 @@ def test_multiword_routes_to_wiktionary_and_strips_html():
 
     assert isinstance(result, LookupResult)
     assert result.word == "kick the bucket"  # normalized, spaces kept
+    assert result.source == "wiktionary"
     assert len(result.senses) == 1
     sense = result.senses[0]
     assert sense.part_of_speech == "verb"
@@ -156,16 +157,20 @@ def test_single_word_falls_back_to_wiktionary_when_dictapi_down():
     assert result.senses[0].part_of_speech == "verb"
 
 
-def test_single_word_404_does_not_fall_back():
-    # A genuine 404 from dictapi must stay NotFound, no Wiktionary fallback.
+def test_single_word_404_falls_back_to_wiktionary():
+    # Both dictionary sources are tried before the caller considers AI fallback.
     def handler(request: httpx.Request) -> httpx.Response:
-        if "dictionaryapi.dev" in str(request.url):
+        url = str(request.url)
+        if "dictionaryapi.dev" in url:
             return httpx.Response(404, json={})
-        raise AssertionError("must not call Wiktionary on a 404")
+        if "/page/definition/" in url:
+            return httpx.Response(200, json=WIKTIONARY_PAYLOAD)
+        return httpx.Response(200, json={"query": {"search": []}})
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
-    result = lookup("asdfqwer", client=client)
-    assert isinstance(result, NotFound)
+    result = lookup("discombobulate", client=client)
+    assert isinstance(result, LookupResult)
+    assert result.senses[0].part_of_speech == "verb"
 
 
 def test_canonical_round_trip_preserves_senses():

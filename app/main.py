@@ -12,7 +12,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import dictionary_client, scheduler, stats as stats_mod, vocab_store
+from app import (
+    dictionary_client,
+    scheduler,
+    stats as stats_mod,
+    translation_client,
+    vocab_store,
+)
 from app.db import connect, init_db
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -26,18 +32,42 @@ def _counts(conn: sqlite3.Connection) -> dict[str, int]:
     return {"total_words": total, "due_today": due}
 
 
-def _card_context(entry: vocab_store.Entry) -> dict:
-    """Build the render context for a review card from its stored payload.
-
-    Stored payloads come in two shapes: the legacy dictapi raw JSON array,
-    and the current canonical object. Detect by type and route accordingly.
-    """
+def _stored_lookup(entry: vocab_store.Entry) -> dictionary_client.LookupResult:
+    """Rebuild a lookup result from a legacy or canonical stored payload."""
     payload = json.loads(entry.payload)
     if isinstance(payload, list):
         senses = dictionary_client._parse(entry.word, payload).senses
+        source = "free-dictionary-api"
     else:
         senses = dictionary_client.senses_from_canonical(payload)
-    return {"entry": entry, "senses": senses}
+        source = payload.get("source") or (
+            "wiktionary" if " " in entry.word else "free-dictionary-api"
+        )
+    return dictionary_client.LookupResult(entry.word, senses, payload, source)
+
+
+def _source_label(source: str) -> str:
+    return {
+        "free-dictionary-api": "Free Dictionary API",
+        "wiktionary": "Wiktionary",
+        "azure-ai-foundry": "Azure AI Foundry",
+    }.get(source, "Unknown source")
+
+
+def _card_context(entry: vocab_store.Entry) -> dict:
+    """Build the render context for a review card from its stored payload."""
+    stored = _stored_lookup(entry)
+    payload = stored.payload
+    senses = stored.senses
+    translations = translation_client.from_canonical(payload)
+    ai_generated = isinstance(payload, dict) and payload.get("generated") is True
+    return {
+        "entry": entry,
+        "senses": senses,
+        "translations": translations,
+        "ai_generated": ai_generated,
+        "source_label": _source_label(stored.source),
+    }
 
 
 def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
@@ -67,23 +97,66 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
     @app.post("/lookup", response_class=HTMLResponse)
     def lookup(request: Request, word: str = Form(...)) -> HTMLResponse:
         conn = app.state.conn
-        result = dictionary_client.lookup(word)
-        if isinstance(result, dictionary_client.LookupError):
-            return templates.TemplateResponse(
-                request,
-                "_lookup_result.html",
-                {"lookup_error": True, "word": result.word},
+        dictionary_result = dictionary_client.lookup(word)
+        fallback: translation_client.GeneratedLookup | None = None
+        existing: vocab_store.Entry | None = None
+        cached_ai_generated = False
+        if isinstance(
+            dictionary_result,
+            (dictionary_client.NotFound, dictionary_client.LookupError),
+        ):
+            existing = vocab_store.get_by_word(conn, word)
+            if existing is not None:
+                result = _stored_lookup(existing)
+                cached_ai_generated = (
+                    isinstance(result.payload, dict)
+                    and result.payload.get("generated") is True
+                )
+            else:
+                fallback = translation_client.generate_lookup(word)
+                if fallback is None:
+                    context_key = (
+                        "lookup_error"
+                        if isinstance(dictionary_result, dictionary_client.LookupError)
+                        else "not_found"
+                    )
+                    return templates.TemplateResponse(
+                        request,
+                        "_lookup_result.html",
+                        {context_key: True, "word": dictionary_result.word},
+                    )
+                result = fallback.result
+        else:
+            result = dictionary_result
+
+        if existing is None:
+            existing = vocab_store.get_by_word(conn, result.word)
+        existed = existing is not None
+        canonical = dictionary_client.to_canonical(result)
+        translations: list[translation_client.SenseTranslation] = []
+        ai_generated = fallback is not None or cached_ai_generated
+        if ai_generated:
+            canonical["source"] = "azure-ai-foundry"
+            canonical["generated"] = True
+        if fallback is not None:
+            translation_client.add_to_canonical(canonical, fallback.translation)
+            translations = fallback.translation.senses
+
+        if existing is not None:
+            stored_translations = translation_client.from_canonical(
+                json.loads(existing.payload)
             )
-        if isinstance(result, dictionary_client.NotFound):
-            return templates.TemplateResponse(
-                request,
-                "_lookup_result.html",
-                {"not_found": True, "word": result.word},
-            )
-        existed = vocab_store.get_by_word(conn, result.word) is not None
-        entry = vocab_store.add_entry(
-            conn, result.word, dictionary_client.to_canonical(result)
-        )
+            if len(stored_translations) == len(result.senses):
+                translations = stored_translations
+        if not translations:
+            generated = translation_client.translate(result)
+            if generated is not None:
+                translation_client.add_to_canonical(canonical, generated)
+                translations = generated.senses
+                if existing is not None:
+                    vocab_store.update_payload(conn, existing.id, canonical)
+
+        entry = vocab_store.add_entry(conn, result.word, canonical)
         return templates.TemplateResponse(
             request,
             "_lookup_result.html",
@@ -91,6 +164,9 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
                 "result": result,
                 "entry": entry,
                 "already_known": existed,
+                "translations": translations,
+                "ai_generated": ai_generated,
+                "source_label": _source_label(result.source),
             },
         )
 

@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Vocabulary - Stats{% endblock %}
 {% block content %}
-<section class="stats">
-  <h1>Stats</h1>
+<section class="stats page-section">
+  <header class="page-header">
+    <span class="eyebrow">Your progress</span>
+    <h1>Learning statistics</h1>
+    <p>A simple view of your collection, recall quality, and recent study rhythm.</p>
+  </header>
 
-  <div class="stat-cards">
+  <div class="stat-cards stats-overview">
     <div class="stat-card">
       <span class="stat-number" data-testid="total-words">{{ stats.total_words }}</span>
       <span class="stat-label">Total words</span>
@@ -19,7 +23,10 @@
     </div>
   </div>
 
-  <h2>Maturity</h2>
+  <div class="section-heading">
+    <div><span class="eyebrow">Deck health</span><h2>Maturity</h2></div>
+    <p>Words move from new to mature as their review interval grows.</p>
+  </div>
   <div class="maturity" data-testid="maturity">
     <div class="maturity-item">
       <span class="maturity-count" data-testid="maturity-new">{{ stats.maturity.new }}</span>
@@ -35,7 +42,10 @@
     </div>
   </div>
 
-  <h2>Reviews per day (last 30 days)</h2>
+  <div class="section-heading chart-heading">
+    <div><span class="eyebrow">Consistency</span><h2>Reviews per day</h2></div>
+    <p>Activity across the last 30 days.</p>
+  </div>
   <div class="bar-chart" data-testid="reviews-chart">
     {% for day in stats.reviews_per_day %}
     <div class="bar-col" title="{{ day.date }}: {{ day.count }}">

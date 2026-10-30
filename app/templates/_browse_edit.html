@@ -2,13 +2,14 @@
       hx-post="/entry/{{ entry.id }}/edit"
       hx-target="#entry-{{ entry.id }}"
       hx-swap="outerHTML">
+  <div class="word-monogram" aria-hidden="true">✎</div>
   <div class="browse-edit-fields">
-    <input type="text" name="word" value="{{ entry.word }}" required autofocus>
-    <input type="text" name="note" value="{{ entry.note }}" placeholder="Note (optional)">
+    <label>Word<input type="text" name="word" value="{{ entry.word }}" required autofocus></label>
+    <label>Personal note<input type="text" name="note" value="{{ entry.note }}" placeholder="Add context or a memory aid"></label>
   </div>
-  <div class="browse-actions">
-    <button type="submit" class="link-btn">Save</button>
-    <button type="button" class="link-btn"
+  <div class="browse-actions edit-actions">
+    <button type="submit" class="small-button primary">Save</button>
+    <button type="button" class="small-button secondary"
             hx-get="/entry/{{ entry.id }}/row"
             hx-target="#entry-{{ entry.id }}"
             hx-swap="outerHTML">Cancel</button>

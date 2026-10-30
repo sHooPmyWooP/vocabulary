@@ -1,21 +1,25 @@
 <div class="browse-row" id="entry-{{ entry.id }}" data-testid="browse-row">
+  <div class="word-monogram" aria-hidden="true">{{ entry.word[0] | upper }}</div>
   <div class="browse-main">
-    <span class="browse-word">{{ entry.word }}</span>
+    <div class="browse-title-line">
+      <span class="browse-word">{{ entry.word }}</span>
+      <span class="state-chip state-{{ entry.state }}">{{ entry.state }}</span>
+    </div>
     <span class="browse-meta">
-      {{ entry.state }} &middot; due {{ entry.due_date }}
-      {% if entry.lookup_count > 1 %}&middot; {{ entry.lookup_count }}&times; looked up{% endif %}
+      Due {{ entry.due_date }}
+      {% if entry.lookup_count > 1 %} · {{ entry.lookup_count }} lookups{% endif %}
     </span>
     {% if entry.note %}<p class="browse-note">{{ entry.note }}</p>{% endif %}
   </div>
   <div class="browse-actions">
-    <button class="link-btn"
+    <button class="icon-button"
             hx-get="/entry/{{ entry.id }}/edit"
             hx-target="#entry-{{ entry.id }}"
-            hx-swap="outerHTML">Edit</button>
-    <button class="link-btn danger"
+            hx-swap="outerHTML" aria-label="Edit {{ entry.word }}" title="Edit">✎</button>
+    <button class="icon-button danger"
             hx-delete="/entry/{{ entry.id }}"
             hx-target="#entry-{{ entry.id }}"
             hx-swap="outerHTML"
-            hx-confirm="Delete this word?">Delete</button>
+            hx-confirm="Delete this word?" aria-label="Delete {{ entry.word }}" title="Delete">×</button>
   </div>
 </div>

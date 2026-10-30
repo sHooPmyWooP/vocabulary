@@ -90,6 +90,18 @@ def add_entry(conn: sqlite3.Connection, word: str, payload: Any) -> Entry:
     return get_by_id(conn, cur.lastrowid)  # type: ignore[return-value]
 
 
+def update_payload(conn: sqlite3.Connection, entry_id: int, payload: Any) -> Entry:
+    """Replace an entry's stored dictionary payload."""
+    if get_by_id(conn, entry_id) is None:
+        raise ValueError(f"no entry with id {entry_id}")
+    conn.execute(
+        "UPDATE entries SET payload = ? WHERE id = ?",
+        (json.dumps(payload), entry_id),
+    )
+    conn.commit()
+    return get_by_id(conn, entry_id)  # type: ignore[return-value]
+
+
 def all_reviews(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Every review-log row, for the stats aggregation module."""
     return conn.execute(

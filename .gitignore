@@ -3,9 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual env
+# Virtual env and local secrets
 .venv/
 venv/
+.env
 
 # uv
 uv.lock

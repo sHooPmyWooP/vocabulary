@@ -50,6 +50,7 @@ def test_multisense_payload_parses_all_senses():
     assert isinstance(result, LookupResult)
     assert result.word == "run"  # normalized
     assert result.payload == MULTISENSE_PAYLOAD  # full raw payload preserved
+    assert result.source == "free-dictionary-api"
     assert len(result.senses) == 2
     verb, noun = result.senses
     assert verb.part_of_speech == "verb"
@@ -60,8 +61,14 @@ def test_multisense_payload_parses_all_senses():
     assert noun.definitions[0].example == "a morning run"
 
 
-def test_404_maps_to_not_found():
-    client = _client_returning(404, {"title": "No Definitions Found"})
+def test_both_sources_missing_maps_to_not_found():
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "dictionaryapi.dev" in url or "/page/definition/" in url:
+            return httpx.Response(404, json={})
+        return httpx.Response(200, json={"query": {"search": []}})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
     result = lookup("asdfqwer", client=client)
 
     assert isinstance(result, NotFound)

@@ -18,20 +18,26 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">Vocabulary</a>
-    <nav class="nav">
-      <a href="/lookup">Lookup</a>
-      <a href="/review">Review</a>
-      <a href="/browse">Browse</a>
-      <a href="/stats">Stats</a>
-      <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
-        <span aria-hidden="true">◐</span>
-      </button>
-    </nav>
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Vocabulary home">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span>Vocabulary</span>
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="/lookup" class="{{ 'active' if request.url.path.startswith('/lookup') else '' }}" {% if request.url.path.startswith('/lookup') %}aria-current="page"{% endif %}><span aria-hidden="true">⌕</span> Lookup</a>
+        <a href="/review" class="{{ 'active' if request.url.path.startswith('/review') else '' }}" {% if request.url.path.startswith('/review') %}aria-current="page"{% endif %}><span aria-hidden="true">◆</span> Review</a>
+        <a href="/browse" class="{{ 'active' if request.url.path.startswith('/browse') else '' }}" {% if request.url.path.startswith('/browse') %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Browse</a>
+        <a href="/stats" class="{{ 'active' if request.url.path.startswith('/stats') else '' }}" {% if request.url.path.startswith('/stats') %}aria-current="page"{% endif %}><span aria-hidden="true">↗</span> Stats</a>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span aria-hidden="true">◐</span>
+        </button>
+      </nav>
+    </div>
   </header>
   <main class="container">
     {% block content %}{% endblock %}
   </main>
+  <footer class="footer">Build your vocabulary, one curious word at a time.</footer>
   <script>
     function toggleTheme() {
       var root = document.documentElement;

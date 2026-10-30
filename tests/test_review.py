@@ -39,12 +39,70 @@ def test_review_shows_due_card_front_with_word():
     body = resp.text
     # Front shows the English word.
     assert "run" in body
+    assert "Source: Free Dictionary API" in body
     # Four grade buttons present.
     for label in ("Again", "Hard", "Good", "Easy"):
         assert label in body
     # Back content (definition/example/synonyms) is rendered for the flip.
     assert "To move rapidly." in body
     assert "sprint" in body
+
+
+def test_review_shows_stored_german_translation():
+    client, conn = make_client()
+    canonical = {
+        "schema": "canonical/1",
+        "word": "run",
+        "source": "azure-ai-foundry",
+        "generated": True,
+        "senses": [
+            {
+                "part_of_speech": "verb",
+                "definitions": [{"definition": "To move rapidly.", "example": None}],
+                "synonyms": [],
+            }
+        ],
+        "translations": {
+            "de": {
+                "provider": "azure-ai-foundry",
+                "senses": [
+                    {
+                        "translation": "laufen",
+                        "explanation": "Sich schnell zu Fuß bewegen.",
+                    }
+                ],
+            }
+        },
+    }
+    vocab_store.add_entry(conn, "run", canonical)
+
+    resp = client.get("/review")
+
+    assert "Deutsch: laufen" in resp.text
+    assert "Sich schnell zu Fuß bewegen." in resp.text
+    assert "Source: Azure AI Foundry" in resp.text
+    assert "AI-generated definition" in resp.text
+
+
+def test_review_shows_wiktionary_source():
+    client, conn = make_client()
+    canonical = {
+        "schema": "canonical/1",
+        "word": "kick the bucket",
+        "source": "wiktionary",
+        "senses": [
+            {
+                "part_of_speech": "idiom",
+                "definitions": [{"definition": "To die.", "example": None}],
+                "synonyms": [],
+            }
+        ],
+    }
+    vocab_store.add_entry(conn, "kick the bucket", canonical)
+
+    resp = client.get("/review")
+
+    assert "Source: Wiktionary" in resp.text
 
 
 def test_review_empty_state_when_nothing_due():
